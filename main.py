@@ -7,7 +7,8 @@ from kivy.uix.textinput import TextInput
 from kivy.clock import Clock
 from kivy.utils import platform
 
-API_URL = "https://TU-APP.onrender.com" # Cambia esto tras subir a Render
+API_URL = "https://Ale2398.pythonanywhere.com"
+
 
 class MainLayout(BoxLayout):
     def __init__(self, **kwargs):
