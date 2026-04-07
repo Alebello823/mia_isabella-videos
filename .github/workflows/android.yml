@@ -2,6 +2,8 @@ name: Build APK
 
 on:
   push:
+    branches: [ main, master ] # Se activa al subir cambios a estas ramas
+  workflow_dispatch: # Permite ejecutarlo manualmente si quieres
 
 jobs:
   build:
@@ -9,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Actualizado a v4
 
       - name: Instalar dependencias
         run: |
@@ -27,10 +29,12 @@ jobs:
 
       - name: Build APK
         run: |
-          buildozer android debug
+          # Usamos "yes |" para aceptar automáticamente las licencias del SDK de Android
+          yes | buildozer android debug
 
       - name: Subir APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Actualizado a v4 para que no de error
         with:
-          name: APK
+          name: VideoDownloader-APK
           path: bin/*.apk
+          
