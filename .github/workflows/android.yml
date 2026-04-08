@@ -2,8 +2,8 @@ name: Build APK
 
 on:
   push:
-    branches: [ main, master ] # Se activa al subir cambios a estas ramas
-  workflow_dispatch: # Permite ejecutarlo manualmente si quieres
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # Actualizado a v4
+        uses: actions/checkout@v4
 
       - name: Instalar dependencias
         run: |
@@ -25,15 +25,16 @@ jobs:
             zlib1g-dev libncurses5-dev libffi-dev libssl-dev
 
           pip3 install --upgrade pip
-          pip3 install buildozer cython==0.29.33
+          # Forzamos Cython 0.29.33 que es el que mejor se lleva con Kivy 2.2.1
+          pip3 install "cython<3.0.0" buildozer setuptools
 
       - name: Build APK
         run: |
-          # Usamos "yes |" para aceptar automáticamente las licencias del SDK de Android
+          # Aceptamos licencias y ejecutamos buildozer con logs detallados
           yes | buildozer android debug
 
       - name: Subir APK
-        uses: actions/upload-artifact@v4 # Actualizado a v4 para que no de error
+        uses: actions/upload-artifact@v4
         with:
           name: VideoDownloader-APK
           path: bin/*.apk
