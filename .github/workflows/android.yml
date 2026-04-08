@@ -11,15 +11,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # Actualizado para evitar deprecación
+        uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Instalar dependencias del sistema
+      - name: Instalar dependencias
         run: |
           sudo apt update
           sudo apt install -y \
@@ -27,20 +27,21 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libffi-dev libssl-dev
 
-      - name: Instalar Buildozer y Cython
-        run: |
           pip3 install --upgrade pip
-          # Forzamos versiones estables para evitar errores de compilación
-          pip3 install "cython<3.0.0" buildozer setuptools
+          # Eliminamos conflictos de versiones previas
+          pip3 install --user --upgrade "cython<3.0.0" wheel setuptools
+          pip3 install --user buildozer
 
       - name: Build con Buildozer
         run: |
-          # Aceptamos licencias automáticamente
+          # Añadimos el bin de pip al PATH para que reconozca buildozer
+          export PATH=$PATH:$HOME/.local/bin
           yes | buildozer android debug
 
       - name: Subir APK
-        uses: actions/upload-artifact@v4 # LA CLAVE: v4 es obligatoria ahora
+        uses: actions/upload-artifact@v4
         with:
-          name: VideoDownloader-Package
+          name: App-Descargador
           path: bin/*.apk
+          
           
