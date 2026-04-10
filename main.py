@@ -4,63 +4,58 @@ import requests
 import threading
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
 from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.properties import StringProperty, NumericProperty
 
 API_URL = "https://Ale2398.pythonanywhere.com"
 
+
 class MainLayout(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(orientation='vertical', padding=20, spacing=10, **kwargs)
+    status_text = StringProperty("Listo")
+    progress = NumericProperty(0)
 
-        self.input = TextInput(hint_text="Pega el enlace aquí", multiline=False)
-        self.add_widget(self.input)
+    def start_download(self):
+        url = self.ids.url_input.text.strip()
 
-        self.status = Label(text="Listo", color=(1, 1, 1, 1))
-        self.add_widget(self.status)
+        if not url:
+            self.update_status("⚠️ Pega un enlace primero")
+            return
 
-        self.btn = Button(text="DESCARGAR AHORA", background_color=(0, 0.6, 0, 1))
-        self.btn.bind(on_press=self.start_download)
-        self.add_widget(self.btn)
+        self.ids.download_btn.disabled = True
+        self.progress = 0
+        self.update_status("⏳ Conectando...")
 
-    def start_download(self, instance):
-        url = self.input.text.strip()
-        if url:
-            self.btn.disabled = True
-            self.status.text = "⏳ Conectando..."
-            threading.Thread(target=self.download_logic, args=(url,)).start()
+        threading.Thread(target=self.download_logic, args=(url,), daemon=True).start()
 
     def download_logic(self, video_url):
         try:
-            # 1. Solicitud al servidor
-            response = requests.post(f"{API_URL}/download", json={"url": video_url}, timeout=35)
+            # 🔹 Paso 1: pedir info al servidor
+            response = requests.post(
+                f"{API_URL}/download",
+                json={"url": video_url},
+                timeout=35
+            )
 
             if response.status_code != 200:
-                Clock.schedule_once(lambda dt: self.update_status("❌ Error en servidor"))
-                self.enable_button()
+                self.safe_update("❌ Error en servidor")
                 return
 
             data = response.json()
             file_id = data.get("file_id")
 
             if not file_id:
-                Clock.schedule_once(lambda dt: self.update_status("❌ Respuesta inválida"))
-                self.enable_button()
+                self.safe_update("❌ Respuesta inválida")
                 return
 
             total_size = data.get("size", 0)
             filename = data.get("filename", f"video_{int(time.time())}.mp4")
 
-            # 2. Ruta de guardado robusta
+            # 🔹 Ruta Android segura
             if platform == 'android':
                 from android.storage import primary_external_storage_path
-                download_dir = os.path.join(primary_external_storage_path(), "Download")
-
-                if not os.path.exists(download_dir):
-                    download_dir = "/storage/emulated/0/Download"
+                base = primary_external_storage_path()
+                download_dir = os.path.join(base, "Download")
 
                 if not os.path.exists(download_dir):
                     os.makedirs(download_dir)
@@ -69,38 +64,45 @@ class MainLayout(BoxLayout):
             else:
                 save_path = filename
 
-            # 3. Descargar archivo
-            res = requests.get(f"{API_URL}/file/{file_id}", stream=True, timeout=30)
+            # 🔹 Paso 2: descargar archivo
+            res = requests.get(
+                f"{API_URL}/file/{file_id}",
+                stream=True,
+                timeout=30
+            )
 
             if res.status_code != 200:
-                Clock.schedule_once(lambda dt: self.update_status("❌ Error descargando archivo"))
-                self.enable_button()
+                self.safe_update("❌ Error descargando archivo")
                 return
 
             downloaded = 0
 
             with open(save_path, "wb") as f:
-                for chunk in res.iter_content(chunk_size=1024 * 1024):
+                for chunk in res.iter_content(chunk_size=1024 * 512):
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
 
                         if total_size > 0:
                             percent = int((downloaded / total_size) * 100)
-                            Clock.schedule_once(lambda dt, p=percent: self.update_status(f"📥 {p}%"))
+                            Clock.schedule_once(lambda dt, p=percent: self.update_progress(p))
 
-            Clock.schedule_once(lambda dt: self.update_status("✅ Guardado en Descargas"))
-            self.enable_button()
-
+            self.safe_update("✅ Descarga completada")
         except Exception as e:
-            Clock.schedule_once(lambda dt: self.update_status(f"❌ Error: {str(e)[:30]}"))
-            self.enable_button()
+            self.safe_update(f"❌ {str(e)[:40]}")
+
+        finally:
+            Clock.schedule_once(lambda dt: setattr(self.ids.download_btn, 'disabled', False))
+
+    def update_progress(self, value):
+        self.progress = value
+        self.status_text = f"📥 Descargando... {value}%"
 
     def update_status(self, text):
-        self.status.text = text
+        self.status_text = text
 
-    def enable_button(self):
-        Clock.schedule_once(lambda dt: setattr(self.btn, 'disabled', False))
+    def safe_update(self, text):
+        Clock.schedule_once(lambda dt: self.update_status(text))
 
 
 class DownloaderApp(App):
