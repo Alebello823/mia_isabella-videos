@@ -1,0 +1,37 @@
+<MainLayout>:
+    orientation: "vertical"
+    padding: 20
+    spacing: 15
+
+    Label:
+        text: "🎬 VideoDownloader Pro"
+        font_size: "20sp"
+        bold: True
+        size_hint_y: None
+        height: "40dp"
+
+    TextInput:
+        id: url_input
+        hint_text: "Pega el enlace del video"
+        multiline: False
+        size_hint_y: None
+        height: "50dp"
+
+    ProgressBar:
+        max: 100
+        value: root.progress
+        size_hint_y: None
+        height: "20dp"
+
+    Label:
+        text: root.status_text
+        size_hint_y: None
+        height: "30dp"
+
+    Button:
+        id: download_btn
+        text: "⬇️ DESCARGAR"
+        size_hint_y: None
+        height: "50dp"
+        background_color: (0, 0.6, 0, 1)
+        on_press: root.start_download()
