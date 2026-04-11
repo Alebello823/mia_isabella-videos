@@ -19,7 +19,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Instalar dependencias del sistema
+      - name: Instalar dependencias
         run: |
           sudo apt update
           sudo apt install -y \
@@ -30,30 +30,20 @@ jobs:
 
           pip3 install --upgrade pip
 
-          # 🔥 FIX CLAVE: evitar error con Cython 3
+          # 🔥 CLAVE: evitar error con cython
           pip3 install --user "cython<3.0.0"
 
-          # Buildozer + herramientas
-          pip3 install --user --upgrade buildozer wheel setuptools
+          pip3 install --user buildozer
 
-      - name: Configurar variables de entorno
-        run: |
-          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-          echo "ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$HOME/.buildozer/android/platform/android-ndk" >> $GITHUB_ENV
-
-      - name: Build con Buildozer
+      - name: Build APK
         run: |
           export PATH=$HOME/.local/bin:$PATH
 
-          # 🔥 Limpieza para evitar errores de builds previos
-          buildozer android clean
-
-          # 🔥 Compilación
+          # 🔥 IMPORTANTE: NO limpiar aquí
           yes | buildozer android debug
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
         with:
-          name: App-Descargador
+          name: APK
           path: bin/*.apk
